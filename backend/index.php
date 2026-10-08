@@ -57,7 +57,8 @@ if ($uri === '/login' && $method === 'POST') {
             "id_usuario" => $user['id_usuario'],
             "nome" => $user['nome'],
             "username" => $user['username'],
-            "foto" => $user['foto']
+            "foto" => $user['foto'],
+            "tipo_perfil" => $user['tipo_perfil']
         ]]);
     } else {
         http_response_code(401);
@@ -92,7 +93,7 @@ if ($uri === '/cadastro' && $method === 'POST') {
         $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
         $fotoName = uniqid() . "." . $ext;
         move_uploaded_file($_FILES['foto']['tmp_name'], __DIR__ . "/uploads/" . $fotoName);
-        $fotoPath = $fotoName;
+        $fotoPath = $avatar.png;
     }
 
     $stmt = $db->prepare("INSERT INTO usuario (nome, username, email, senha, foto) VALUES (?, ?, ?, ?, ?)");
@@ -201,6 +202,62 @@ if (preg_match('/^\/publicacoes\/(\d+)$/', $uri, $matches) && $method === 'DELET
         http_response_code(403);
         echo json_encode(["erro" => "Ação não permitida ou publicação inexistente."]);
     }
+    exit;
+}
+
+// ROUTE: GET /usuarios/{id}  -> dados do perfil de um usuário
+if (preg_match('/^\/usuarios\/(\d+)$/', $uri, $matches) && $method === 'GET') {
+    $idPerfil = (int)$matches[1];   // o número que veio na URL (ex.: /usuarios/4 -> 4)
+
+    // O token é opcional: serve só para marcar quais posts o visitante já curtiu
+    $user = getAuthenticatedUser();
+    $currentUserId = $user ? (int)$user['id_usuario'] : 0;
+
+    // 1) Dados públicos do usuário (não pedimos email nem senha de propósito)
+    $stmt = $db->prepare("SELECT id_usuario, nome, username, foto FROM usuario WHERE id_usuario = ?");
+    $stmt->execute([$idPerfil]);
+    $perfil = $stmt->fetch();
+
+    if (!$perfil) {
+        http_response_code(404);
+        echo json_encode(["erro" => "Usuário não encontrado."]);
+        exit;
+    }
+
+    // 2) Quantidade de publicações dele
+    $stmt = $db->prepare("SELECT COUNT(*) FROM publicacao WHERE id_usuario = ?");
+    $stmt->execute([$idPerfil]);
+    $perfil['total_publicacoes'] = (int)$stmt->fetchColumn();
+
+    // 3) Curtidas RECEBIDAS: a tabela curtida não diz de quem é o post,
+    //    então ligamos com publicacao e contamos só as publicações DELE
+    $stmt = $db->prepare("
+        SELECT COUNT(*)
+        FROM curtida c
+        JOIN publicacao p ON p.id_publicacao = c.id_publicacao
+        WHERE p.id_usuario = ?
+    ");
+    $stmt->execute([$idPerfil]);
+    $perfil['total_curtidas_recebidas'] = (int)$stmt->fetchColumn();
+
+    // 4) Publicações dele: é a mesma query do feed, com um WHERE a mais
+    $stmt = $db->prepare("
+        SELECT p.*, u.nome, u.username, u.foto AS foto_usuario,
+            COUNT(c.id_curtida) AS total_curtidas,
+            MAX(CASE WHEN c.id_usuario = :current_user THEN 1 ELSE 0 END) AS curtido_pelo_usuario
+        FROM publicacao p
+        JOIN usuario u ON p.id_usuario = u.id_usuario
+        LEFT JOIN curtida c ON p.id_publicacao = c.id_publicacao
+        WHERE p.id_usuario = :autor
+        GROUP BY p.id_publicacao
+        ORDER BY p.datahora_publicacao DESC
+    ");
+    $stmt->bindValue(':current_user', $currentUserId, PDO::PARAM_INT);
+    $stmt->bindValue(':autor', $idPerfil, PDO::PARAM_INT);
+    $stmt->execute();
+    $perfil['publicacoes'] = $stmt->fetchAll();
+
+    echo json_encode($perfil);
     exit;
 }
 

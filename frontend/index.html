@@ -18,6 +18,9 @@
     </header>
 
     <main class="container">
+
+    <!-- TELA DO FEED: é o que você já tinha, agora dentro de uma div -->
+    <div id="feedView">
         <section id="createPostSection" class="card hidden">
             <h3>Criar Publicação</h3>
             <form id="postForm">
@@ -30,9 +33,15 @@
         </section>
 
         <section id="feed" class="feed-container">
-            <!-- Feed renderizado dinamicamente -->
         </section>
-    </main>
+    </div>
+
+    <!-- TELA DO PERFIL: começa escondida, o JavaScript preenche e mostra -->
+    <div id="profileView" class="hidden">
+        <section id="profileContent"></section>
+    </div>
+
+</main>
 
     <!-- Modal de Autenticação -->
     <div id="authModal" class="modal hidden">
@@ -58,7 +67,7 @@
                 <input type="file" id="regFoto" accept="image/*">
                 <div id="regError" class="error-msg hidden"></div>
                 <button type="submit" class="btn primary">Cadastrar</button>
-            </form> // oi eu te amo  
+            </form>
         </div>
     </div>
 

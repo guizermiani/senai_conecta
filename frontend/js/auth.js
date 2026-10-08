@@ -9,8 +9,13 @@ function checkAuth() {
             <span>@${user.username}</span>
             <button class="btn" onclick="logout()">Sair</button>
         `;
-        createPostSection.classList.remove('hidden');
-    } else {
+        // Mostra o formulário só se o usuário for "criador"
+        if (user.tipo_perfil === 'criador') {
+            createPostSection.classList.remove('hidden');
+        } else {
+            createPostSection.classList.add('hidden');
+        }
+    } else {    
         userMenu.innerHTML = `<button class="btn primary" onclick="openAuthModal()">Entrar</button>`;
         createPostSection.classList.add('hidden');
     }
