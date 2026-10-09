@@ -39,3 +39,41 @@ body { background-color: var(--background); color: var(--text); display: flex; f
 .error-msg { color: var(--danger); font-size: 0.85rem; }
 
 .footer { text-align: center; padding: 1rem; background: #e9ecef; border-top: 1px solid var(--border); }
+
+/* Elementos clicáveis */
+.link { cursor: pointer; }
+.link:hover { text-decoration: underline; }
+.user-menu { display: flex; align-items: center; gap: 0.8rem; }
+
+/* Aba de perfil */
+.profile-card { display: flex; align-items: center; gap: 1.5rem; margin-top: 1rem; }
+.profile-avatar {
+    width: 96px; height: 96px; border-radius: 50%;
+    object-fit: cover; border: 3px solid var(--primary);
+}
+.profile-info h2 { margin-bottom: 0.2rem; }
+.profile-username { color: #777; }
+.profile-stats { display: flex; gap: 2rem; margin-top: 0.8rem; }
+.profile-stats div { display: flex; flex-direction: column; align-items: center; }
+.profile-stats strong { font-size: 1.4rem; color: var(--primary); }
+.profile-stats span { font-size: 0.8rem; color: #777; }
+#profileView h3 { margin: 1rem 0 0.8rem; }
+.empty { color: #888; text-align: center; padding: 1rem; }
+
+/* Pesquisa de usuários */
+.search-box { position: relative; }
+.search-results {
+    position: absolute; top: calc(100% + 6px); left: 0; width: 100%;
+    background: white; color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    overflow: hidden; z-index: 10;
+}
+.search-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.8rem; cursor: pointer; }
+.search-item:hover { background: var(--background); }
+.search-item img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.search-item small { display: block; color: #777; }
+.search-empty { padding: 0.7rem 0.8rem; color: #888; font-size: 0.9rem; }
+
+/* layout de botões de Login e Cadastro*/
+.tab-btn { background: none; border: none; cursor: pointer; padding: 0.5rem 1rem; font-weight: bold; color: #555; }
+.tab-btn.active { border-bottom: 2px solid var(--primary); color: var(--primary); }

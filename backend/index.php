@@ -88,12 +88,12 @@ if ($uri === '/cadastro' && $method === 'POST') {
         exit;
     }
 
-    $fotoPath = "default_avatar.png";
+    $fotoPath = "avatar.png";
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
         $fotoName = uniqid() . "." . $ext;
         move_uploaded_file($_FILES['foto']['tmp_name'], __DIR__ . "/uploads/" . $fotoName);
-        $fotoPath = $avatar.png;
+        $fotoPath = $fotoName;
     }
 
     $stmt = $db->prepare("INSERT INTO usuario (nome, username, email, senha, foto) VALUES (?, ?, ?, ?, ?)");
@@ -258,6 +258,35 @@ if (preg_match('/^\/usuarios\/(\d+)$/', $uri, $matches) && $method === 'GET') {
     $perfil['publicacoes'] = $stmt->fetchAll();
 
     echo json_encode($perfil);
+    exit;
+}
+
+// ROUTE: GET /usuarios?busca=texto  -> pesquisa usuários por username ou nome
+if ($uri === '/usuarios' && $method === 'GET') {
+    $busca = trim($_GET['busca'] ?? '');
+    $busca = ltrim($busca, '@');          // aceita "@maria" ou "maria"
+
+    // Sem texto não há o que pesquisar
+    if ($busca === '') {
+        echo json_encode([]);
+        exit;
+    }
+
+    // No LIKE, % e _ são curingas. Escapamos para a pessoa não conseguir usá-los
+    $busca = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $busca);
+    $termo = '%' . $busca . '%';          // %texto% = "contém o texto em qualquer posição"
+
+    // Só dados públicos (sem email e sem senha), no máximo 8 resultados
+    $stmt = $db->prepare("
+        SELECT id_usuario, nome, username, foto
+        FROM usuario
+        WHERE username LIKE :termo_username OR nome LIKE :termo_nome
+        ORDER BY username
+        LIMIT 8
+    ");
+    $stmt->execute([':termo_username' => $termo, ':termo_nome' => $termo]);
+
+    echo json_encode($stmt->fetchAll());
     exit;
 }
 

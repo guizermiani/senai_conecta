@@ -6,7 +6,7 @@ function checkAuth() {
 
     if (token && user) {
         userMenu.innerHTML = `
-            <span>@${user.username}</span>
+            <span class="link" onclick="openProfile(${user.id_usuario})">@${user.username}</span>
             <button class="btn" onclick="logout()">Sair</button>
         `;
         // Mostra o formulário só se o usuário for "criador"
@@ -41,7 +41,7 @@ function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     checkAuth();
-    loadFeed();
+    showFeed();
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -62,7 +62,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         localStorage.setItem('usuario', JSON.stringify(res.usuario));
         closeAuthModal();
         checkAuth();
-        loadFeed();
+        showFeed();
     } catch (err) {
         errorDiv.textContent = err.message;
         errorDiv.classList.remove('hidden');
