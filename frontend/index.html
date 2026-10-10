@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Cabeçalho: logo, barra de pesquisa e menu do usuário -->
     <header class="header">
         <div class="logo link" onclick="showFeed()">SENAI CONECTA</div>
+        <!-- Barra de pesquisa de usuários (o JS cria a lista de resultados aqui dentro) -->
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Pesquisar @username...">
         </div>
@@ -17,10 +19,12 @@
         </div>
     </header>
 
+    <!-- Conteúdo principal: alterna entre o feed e o perfil -->
     <main class="container">
 
     <!-- TELA DO FEED: é o que você já tinha, agora dentro de uma div -->
     <div id="feedView">
+        <!-- Formulário de nova publicação (escondido; só aparece para "criador") -->
         <section id="createPostSection" class="card hidden">
             <h3>Criar Publicação</h3>
             <form id="postForm">
@@ -32,6 +36,7 @@
             </form>
         </section>
 
+        <!-- Lista de publicações (preenchida pelo JS) -->
         <section id="feed" class="feed-container">
         </section>
     </div>
@@ -47,11 +52,13 @@
     <div id="authModal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" onclick="closeAuthModal()">&times;</span>
+            <!-- Abas Login / Cadastrar -->
             <div class="tabs">
                 <button id="tabLogin" class="tab-btn active" onclick="switchTab('login')">Login</button>
                 <button id="tabRegister" class="tab-btn" onclick="switchTab('register')">Cadastrar</button>
             </div>
 
+            <!-- Formulário de login -->
             <form id="loginForm" class="auth-form">
                 <input type="email" id="loginEmail" placeholder="E-mail" required>
                 <input type="password" id="loginSenha" placeholder="Senha" required>
@@ -59,6 +66,7 @@
                 <button type="submit" class="btn primary">Entrar</button>
             </form>
 
+            <!-- Formulário de cadastro -->
             <form id="registerForm" class="auth-form hidden">
                 <input type="text" id="regNome" placeholder="Nome Completo" required>
                 <input type="text" id="regUsername" placeholder="Nome de usuário (@username)" required>
@@ -75,6 +83,7 @@
         <p>&copy; 2026-2027 SENAI Conecta</p>
     </footer>
 
+    <!-- Scripts: a ordem importa (api.js → auth.js → app.js) -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>

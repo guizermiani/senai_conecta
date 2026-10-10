@@ -1,11 +1,13 @@
 // Guarda qual perfil está aberto (null = estamos no feed)
 let perfilAbertoId = null;
 
+// Ao carregar a página: ajusta o topo (login) e carrega o feed
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadFeed();
 });
 
+// Busca as publicações na API e desenha o feed
 async function loadFeed() {
     const feed = document.getElementById('feed');
     try {
@@ -16,11 +18,14 @@ async function loadFeed() {
     }
 }
 
+// Gera o HTML de uma publicação (usado no feed e no perfil)
 function renderPost(post) {
+    // isOwner: o logado é o autor (mostra Excluir) | isLiked: o logado já curtiu
     const user = JSON.parse(localStorage.getItem('usuario') || 'null');
     const isOwner = user && user.id_usuario === post.id_usuario;
     const isLiked = post.curtido_pelo_usuario == 1;
 
+    // HTML da publicação: autor (clicável), texto, imagem, curtidas e data
     return `
         <div class="post-card" id="post-${post.id_publicacao}">
             <div class="post-header">
@@ -42,6 +47,7 @@ function renderPost(post) {
     `;
 }
 
+// Curtir/descurtir; sem login abre o modal de login
 async function toggleLike(idPublicacao) {
     if (!localStorage.getItem('token')) {
         openAuthModal();
@@ -59,6 +65,7 @@ async function toggleLike(idPublicacao) {
     }
 }
 
+// Exclui a publicação (pede confirmação)
 async function deletePost(idPublicacao) {
     if (!confirm('Deseja realmente excluir esta publicação?')) return;
 
@@ -70,6 +77,7 @@ async function deletePost(idPublicacao) {
     }
 }
 
+// Envio do formulário de nova publicação (texto + imagem opcional)
 document.getElementById('postForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -87,6 +95,7 @@ document.getElementById('postForm').addEventListener('submit', async (e) => {
     }
 });
 
+// Escapa caracteres especiais do texto (evita injeção de HTML/XSS)
 function escapeHtml(text) {
     return text.replace(/[&<>"']/g, match => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -190,6 +199,7 @@ function renderProfile(perfil) {
         return apiFetch(`/usuarios?busca=${encodeURIComponent(termo)}`);
     }
 
+    // Esconde e limpa a lista de resultados
     function fecharResultados() {
         searchResults.classList.add('hidden');
         searchResults.innerHTML = '';
@@ -221,6 +231,7 @@ function renderProfile(perfil) {
         openProfile(Number(idUsuario));
     }
 
+    // Busca na API e mostra os resultados
     async function pesquisar(termo) {
         try {
             const usuarios = await buscarUsuarios(termo);

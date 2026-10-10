@@ -1,6 +1,9 @@
+# Ativa a reescrita de URL
 RewriteEngine On
 
+# Se o pedido não for um arquivo nem uma pasta existente...
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
+# ...manda tudo para o index.php (QSA mantém a query string, ex.: ?busca=)
 RewriteRule ^(.*)$ index.php [QSA,L]

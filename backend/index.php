@@ -1,32 +1,40 @@
 <?php
+// CORS: permite que o frontend (outra origem) acesse esta API
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
+// Todas as respostas são em JSON
 header("Content-Type: application/json; charset=UTF-8");
 
+// Pré-requisição do navegador (CORS): responde 200 e encerra
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
+// Conexão com o banco e utilitário de token JWT
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/helpers/jwt_helper.php';
 
+// $db: conexão | $uri: caminho pedido | $method: GET, POST, DELETE...
 $db = (new Database())->getConnection();
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Remove o prefixo da pasta do projeto para sobrar só a rota (ex.: /login)
 $basePath = '/senai_conecta/backend';
 
 if (str_starts_with($uri, $basePath)) {
     $uri = substr($uri, strlen($basePath));
 }
 
+// Rota vazia vira "/"
 if ($uri === '') {
     $uri = '/';
 }
 
+// Lê o token "Bearer ..." do cabeçalho Authorization e devolve os dados do usuário (ou null)
 function getAuthenticatedUser(): ?array {
     $headers = getallheaders();
     $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
@@ -38,14 +46,17 @@ function getAuthenticatedUser(): ?array {
 
 // ROUTE: POST /login
 if ($uri === '/login' && $method === 'POST') {
+    // Lê o JSON enviado pelo frontend
     $data = json_decode(file_get_contents("php://input"), true);
     $email = trim($data['email'] ?? '');
     $senha = $data['senha'] ?? '';
 
+    // Busca o usuário pelo e-mail
     $stmt = $db->prepare("SELECT * FROM usuario WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
+    // Senha correta: gera o token (expira em 8h) e devolve os dados do usuário; senão, erro 401
     if ($user && $senha === $user['senha']) {
         $token = JWTHelper::encode([
             'id_usuario' => $user['id_usuario'],
@@ -69,17 +80,20 @@ if ($uri === '/login' && $method === 'POST') {
 
 // ROUTE: POST /cadastro
 if ($uri === '/cadastro' && $method === 'POST') {
+    // Dados do formulário de cadastro
     $nome = trim($_POST['nome'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
+    // Todos os campos são obrigatórios (erro 400)
     if (empty($nome) || empty($username) || empty($email) || empty($senha)) {
         http_response_code(400);
         echo json_encode(["erro" => "Todos os campos obrigatórios devem ser preenchidos."]);
         exit;
     }
 
+    // Impede username ou e-mail repetidos (erro 409)
     $stmt = $db->prepare("SELECT id_usuario FROM usuario WHERE username = ? OR email = ?");
     $stmt->execute([$username, $email]);
     if ($stmt->fetch()) {
@@ -88,6 +102,7 @@ if ($uri === '/cadastro' && $method === 'POST') {
         exit;
     }
 
+    // Foto: avatar padrão, ou a foto enviada salva com nome único em /uploads
     $fotoPath = "avatar.png";
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
@@ -96,6 +111,7 @@ if ($uri === '/cadastro' && $method === 'POST') {
         $fotoPath = $fotoName;
     }
 
+    // Grava o usuário no banco e responde 201 (criado)
     $stmt = $db->prepare("INSERT INTO usuario (nome, username, email, senha, foto) VALUES (?, ?, ?, ?, ?)");
     $stmt->execute([$nome, $username, $email, $senha, $fotoPath]);
 
@@ -105,10 +121,13 @@ if ($uri === '/cadastro' && $method === 'POST') {
 }
 
 // ROUTE: GET /publicacoes
+// Feed: todas as publicações com autor e total de curtidas
 if ($uri === '/publicacoes' && $method === 'GET') {
+    // Token é opcional: serve só para marcar o que o visitante já curtiu
     $user = getAuthenticatedUser();
     $currentUserId = $user ? $user['id_usuario'] : 0;
 
+    // JOIN traz o autor; COUNT = total de curtidas; MAX(CASE...) = 1 se o usuário logado curtiu
     $query = "
         SELECT p.*, u.nome, u.username, u.foto AS foto_usuario,
             COUNT(c.id_curtida) AS total_curtidas,
@@ -120,26 +139,32 @@ if ($uri === '/publicacoes' && $method === 'GET') {
         ORDER BY p.datahora_publicacao DESC
     ";
 
+    // Executa passando o id do usuário como parâmetro (seguro contra SQL injection)
     $stmt = $db->prepare($query);
     $stmt->bindValue(':current_user', $currentUserId, PDO::PARAM_INT);
     $stmt->execute();
     
+    // Devolve a lista em JSON
     echo json_encode($stmt->fetchAll());
     exit;
 }
 
 // ROUTE: POST /publicacoes
+// Cria uma publicação (exige token)
 if ($uri === '/publicacoes' && $method === 'POST') {
     $user = getAuthenticatedUser();
+    // Sem token válido: erro 401
     if (!$user) {
         http_response_code(401);
         echo json_encode(["erro" => "Acesso não autorizado."]);
         exit;
     }
 
+    // Texto e imagem (opcional) vindos do formulário
     $texto = trim($_POST['texto'] ?? '');
     $imagemPath = null;
 
+    // Se enviou imagem: salva com nome único em /uploads
     if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
         $imagemName = uniqid() . "." . $ext;
@@ -147,6 +172,7 @@ if ($uri === '/publicacoes' && $method === 'POST') {
         $imagemPath = $imagemName;
     }
 
+    // Grava a publicação em nome do usuário logado
     $stmt = $db->prepare("INSERT INTO publicacao (id_usuario, texto, imagem) VALUES (?, ?, ?)");
     $stmt->execute([$user['id_usuario'], $texto, $imagemPath]);
 
@@ -156,21 +182,26 @@ if ($uri === '/publicacoes' && $method === 'POST') {
 }
 
 // ROUTE: POST /curtir
+// Curtir/descurtir (alterna): se já curtiu remove a curtida, senão adiciona
 if ($uri === '/curtir' && $method === 'POST') {
     $user = getAuthenticatedUser();
+    // Sem token válido: erro 401
     if (!$user) {
         http_response_code(401);
         echo json_encode(["erro" => "Acesso não autorizado."]);
         exit;
     }
 
+    // Id da publicação enviado pelo frontend
     $data = json_decode(file_get_contents("php://input"), true);
     $id_publicacao = $data['id_publicacao'] ?? null;
 
+    // Verifica se este usuário já curtiu esta publicação
     $stmt = $db->prepare("SELECT id_curtida FROM curtida WHERE id_publicacao = ? AND id_usuario = ?");
     $stmt->execute([$id_publicacao, $user['id_usuario']]);
     $curtida = $stmt->fetch();
 
+    // Já curtiu: remove | não curtiu: adiciona
     if ($curtida) {
         $delete = $db->prepare("DELETE FROM curtida WHERE id_curtida = ?");
         $delete->execute([$curtida['id_curtida']]);
@@ -184,8 +215,10 @@ if ($uri === '/curtir' && $method === 'POST') {
 }
 
 // ROUTE: DELETE /publicacoes/{id}
+// Exclui a publicação; só o autor consegue (o WHERE confere o id_usuario)
 if (preg_match('/^\/publicacoes\/(\d+)$/', $uri, $matches) && $method === 'DELETE') {
     $user = getAuthenticatedUser();
+    // Sem token válido: erro 401
     if (!$user) {
         http_response_code(401);
         echo json_encode(["erro" => "Acesso não autorizado."]);
@@ -196,6 +229,7 @@ if (preg_match('/^\/publicacoes\/(\d+)$/', $uri, $matches) && $method === 'DELET
     $stmt = $db->prepare("DELETE FROM publicacao WHERE id_publicacao = ? AND id_usuario = ?");
     $stmt->execute([$id_publicacao, $user['id_usuario']]);
 
+    // rowCount 0 = não existe ou não é do usuário (erro 403)
     if ($stmt->rowCount() > 0) {
         echo json_encode(["mensagem" => "Publicação excluída com sucesso."]);
     } else {
@@ -290,5 +324,6 @@ if ($uri === '/usuarios' && $method === 'GET') {
     exit;
 }
 
+// Nenhuma rota combinou: erro 404
 http_response_code(404);
 echo json_encode(["erro" => "Rota não encontrada."]);

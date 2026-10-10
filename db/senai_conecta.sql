@@ -1,6 +1,8 @@
+-- Cria o banco (utf8mb4 aceita acentos e emojis)
 CREATE DATABASE IF NOT EXISTS senai_conecta CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE senai_conecta;
 
+-- Usuários (tipo_perfil: "criador" ou "usuario")
 CREATE TABLE usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -13,6 +15,7 @@ CREATE TABLE usuario (
 	atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- Publicações (se o usuário for apagado, as publicações dele também são)
 CREATE TABLE publicacao (
     id_publicacao INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -22,6 +25,7 @@ CREATE TABLE publicacao (
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE cascade
 ) ENGINE=InnoDB;
 
+-- Curtidas (UNIQUE: um usuário só curte uma publicação uma vez)
 CREATE TABLE curtida (
     id_curtida INT AUTO_INCREMENT PRIMARY KEY,
     id_publicacao INT NOT NULL,
